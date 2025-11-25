@@ -1,120 +1,212 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 
-namespace MathFunctions
+namespace Lab6
 {
-    // 1. Базовий клас: "Дробово-лінійна функція"
-    // Формула: (a1*x + a0) / (b1*x + b0)
-    public class LinearFractionalFunction
+    // --- 1. ІНТЕРФЕЙСИ ---
+
+    // Інтерфейс для будь-якої функції, яку можна обчислити
+    public interface IFunction
     {
-        // Поля для коефіцієнтів (protected, щоб їх бачив клас-спадкоємець)
-        protected double a1, a0;
-        protected double b1, b0;
+        double Calculate(double x);
+    }
 
-        // Метод 1: Завдання коефіцієнтів
-        public virtual void SetCoefficients(double a1, double a0, double b1, double b0)
+    // Інтерфейс для об'єктів, які можуть надати інформацію про себе
+    public interface IDisplayable
+    {
+        string GetInfo();
+    }
+
+    // --- 2. АБСТРАКТНИЙ КЛАС ---
+
+    // Базовий абстрактний клас, що реалізує інтерфейси
+    public abstract class FunctionBase : IFunction, IDisplayable
+    {
+        // Абстрактні методи, які обов'язково мають бути створені у спадкоємцях
+        public abstract double Calculate(double x);
+        public abstract string GetInfo();
+    }
+
+    // --- 3. КЛАС "ДРОБОВО-ЛІНІЙНА ФУНКЦІЯ" ---
+
+    /// <summary>
+    /// Клас функції виду (a1*x + a0) / (b1*x + b0)
+    /// </summary>
+    public class LinearFractionalFunction : FunctionBase
+    {
+        // Константа для порівняння з нулем (щоб уникнути проблем з точністю double)
+        protected const double Tolerance = 1e-9;
+
+        // Приватні поля (Інкапсуляція: camelCase)
+        private double _a1;
+        private double _a0;
+        private double _b1;
+        private double _b0;
+
+        // Публічні властивості (PascalCase)
+        public double A1 { get => _a1; set => _a1 = value; }
+        public double A0 { get => _a0; set => _a0 = value; }
+        public double B1 { get => _b1; set => _b1 = value; }
+        public double B0 { get => _b0; set => _b0 = value; }
+
+        // Конструктор за замовчуванням
+        public LinearFractionalFunction()
         {
-            this.a1 = a1;
-            this.a0 = a0;
-            this.b1 = b1;
-            this.b0 = b0;
+            _b0 = 1; // Уникаємо ділення на 0 за замовчуванням
         }
 
-        // Метод 2: Виведення коефіцієнтів на екран (Virtual, щоб можна було змінити у спадкоємця)
-        public virtual void Display()
+        // Конструктор з параметрами
+        public LinearFractionalFunction(double a1, double a0, double b1, double b0)
         {
-            Console.WriteLine("--- Дробово-лiнiйна функцiя ---");
-            Console.WriteLine($"Вигляд: ({a1}x + {a0}) / ({b1}x + {b0})");
-            Console.WriteLine($"Коефiцiєнти: a1={a1}, a0={a0}, b1={b1}, b0={b0}");
+            A1 = a1;
+            A0 = a0;
+            B1 = b1;
+            B0 = b0;
         }
 
-        // Метод 3: Знаходження значення в точці x0
-        public virtual double CalculateValue(double x0)
+        // Реалізація методу обчислення
+        public override double Calculate(double x)
         {
-            double numerator = a1 * x0 + a0;     // чисельник
-            double denominator = b1 * x0 + b0;   // знаменник
+            double numerator = A1 * x + A0;
+            double denominator = B1 * x + B0;
 
-            // Перевірка ділення на нуль (базова безпека)
-            if (denominator == 0)
+            // Валідація: Кидаємо виняток замість простого виведення тексту
+            if (Math.Abs(denominator) < Tolerance)
             {
-                Console.WriteLine("Помилка: Дiлення на нуль!");
-                return 0;
+                throw new DivideByZeroException($"Знаменник дорівнює нулю при x = {x}");
             }
 
             return numerator / denominator;
         }
+
+        // Реалізація методу інформації
+        public override string GetInfo()
+        {
+            return $"Дробово-лiнiйна: ({A1}x + {A0}) / ({B1}x + {B0})";
+        }
     }
 
-    // 2. Похідний клас: "Дробова функція" (квадратична)
-    // Формула: (a2*x^2 + a1*x + a0) / (b2*x^2 + b1*x + b0)
+    // --- 4. КЛАС "ДРОБОВА (КВАДРАТИЧНА) ФУНКЦІЯ" ---
+
+    /// <summary>
+    /// Дробова функція (квадратична) виду (a2*x^2 + a1*x + a0) / (b2*x^2 + b1*x + b0)
+    /// Спадкується від лінійної.
+    /// </summary>
     public class FractionalFunction : LinearFractionalFunction
     {
-        // Додаємо нові коефіцієнти для x^2
-        protected double a2;
-        protected double b2;
+        // Нові поля для квадратичних коефіцієнтів
+        private double _a2;
+        private double _b2;
 
-        // Перевантажуємо метод завдання коефіцієнтів (приймаємо більше параметрів)
-        public void SetCoefficients(double a2, double a1, double a0, double b2, double b1, double b0)
+        public double A2 { get => _a2; set => _a2 = value; }
+        public double B2 { get => _b2; set => _b2 = value; }
+
+        // Конструктор за замовчуванням
+        public FractionalFunction() : base() { }
+
+        // Конструктор з усіма параметрами. Викликає конструктор батька (base)
+        public FractionalFunction(double a2, double a1, double a0, double b2, double b1, double b0)
+            : base(a1, a0, b1, b0)
         {
-            // Встановлюємо нові
-            this.a2 = a2;
-            this.b2 = b2;
-            // Використовуємо метод батька для встановлення старих (base)
-            base.SetCoefficients(a1, a0, b1, b0);
+            A2 = a2;
+            B2 = b2;
         }
 
-        // Перевизначаємо (Override) метод виведення
-        public override void Display()
+        // Перевизначення (Override) методу обчислення
+        public override double Calculate(double x)
         {
-            Console.WriteLine("--- Дробова функцiя (квадратична) ---");
-            Console.WriteLine($"Вигляд: ({a2}x^2 + {a1}x + {a0}) / ({b2}x^2 + {b1}x + {b0})");
-            Console.WriteLine($"Коефiцiєнти: a2={a2}, a1={a1}, a0={a0}, b2={b2}, b1={b1}, b0={b0}");
-        }
+            // Оптимізація: просте множення швидше за Math.Pow
+            double x2 = x * x;
 
-        // Перевизначаємо (Override) метод обчислення
-        public override double CalculateValue(double x0)
-        {
-            // Math.Pow(x0, 2) - це піднесення до квадрату
-            double numerator = a2 * Math.Pow(x0, 2) + a1 * x0 + a0;
-            double denominator = b2 * Math.Pow(x0, 2) + b1 * x0 + b0;
+            double numerator = A2 * x2 + A1 * x + A0;
+            double denominator = B2 * x2 + B1 * x + B0;
 
-            if (denominator == 0)
+            if (Math.Abs(denominator) < Tolerance)
             {
-                Console.WriteLine("Помилка: Дiлення на нуль!");
-                return 0;
+                throw new DivideByZeroException($"Знаменник дорівнює нулю при x = {x}");
             }
 
             return numerator / denominator;
         }
+
+        // Перевизначення методу інформації
+        public override string GetInfo()
+        {
+            return $"Квадратична: ({A2}x^2 + {A1}x + {A0}) / ({B2}x^2 + {B1}x + {B0})";
+        }
     }
 
-    // 3. Головний клас програми для тестування
+    // --- 5. ГОЛОВНА ПРОГРАМА ---
+
     class Program
     {
         static void Main(string[] args)
         {
-            // --- Тест 1: Дробово-лінійна функція ---
-            LinearFractionalFunction linearFunc = new LinearFractionalFunction();
+            // Вмикаємо українську мову в консолі
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            Console.WriteLine("=== Лабораторна робота 6: Абстракцiя, Iнтерфейси та Полiморфiзм ===\n");
 
-            // Задаємо коефіцієнти: (2x + 5) / (1x + 1)
-            linearFunc.SetCoefficients(2, 5, 1, 1);
-            linearFunc.Display();
+            try
+            {
+                // ДЕМОНСТРАЦІЯ ПОЛІМОРФІЗМУ
+                // Створюємо колекцію абстрактних FunctionBase, куди кладемо різних нащадків
+                List<FunctionBase> functions = new List<FunctionBase>
+                {
+                    // (2x + 5) / (1x - 2)
+                    new LinearFractionalFunction(2, 5, 1, -2),
 
-            double x1 = 2;
-            Console.WriteLine($"Значення в точцi x={x1}: {linearFunc.CalculateValue(x1)}");
-            Console.WriteLine(); // пустий рядок для краси
+                    // (1x^2 + 2x + 1) / (1x^2 + 0x - 4)
+                    new FractionalFunction(1, 2, 1, 1, 0, -4)
+                };
 
+                // Точка, в якій шукаємо значення
+                double x = 1.0;
 
-            // --- Тест 2: Дробова (квадратична) функція ---
-            FractionalFunction quadraticFunc = new FractionalFunction();
+                Console.WriteLine($"Обчислення значень при x = {x}:\n");
 
-            // Задаємо коефіцієнти: (1x^2 + 2x + 3) / (1x^2 + 0x + 1)
-            quadraticFunc.SetCoefficients(1, 2, 3, 1, 0, 1);
-            quadraticFunc.Display();
+                foreach (var func in functions)
+                {
+                    // 1. Виведення інформації (через інтерфейс IDisplayable)
+                    Console.WriteLine(func.GetInfo());
 
-            double x2 = 2;
-            Console.WriteLine($"Значення в точцi x={x2}: {quadraticFunc.CalculateValue(x2)}");
+                    // 2. Обчислення (через інтерфейс IFunction)
+                    // Використовуємо try-catch всередині циклу, щоб помилка в одній функції не зупинила інші
+                    try
+                    {
+                        double result = func.Calculate(x);
+                        Console.WriteLine($"Результат: {result:F4}");
+                    }
+                    catch (DivideByZeroException ex)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Помилка: {ex.Message}");
+                        Console.ResetColor();
+                    }
+                    Console.WriteLine(new string('-', 40));
+                }
 
-            Console.ReadKey(); // Чекаємо натискання клавіші
+                // --- ДЕМОНСТРАЦІЯ ОБРОБКИ ПОМИЛКИ ---
+                Console.WriteLine("\nТест обробки виняткових ситуацiй (x = 2):");
+                // Беремо першу функцію: (2x+5)/(x-2). При x=2 знаменник буде 0.
+                var errorFunc = functions[0];
+
+                Console.WriteLine(errorFunc.GetInfo());
+                Console.WriteLine("Спроба обчислення...");
+
+                // Цей виклик впаде з помилкою, яку ми зловимо нижче
+                double val = errorFunc.Calculate(2);
+                Console.WriteLine($"Результат: {val}");
+            }
+            catch (Exception ex)
+            {
+                // Цей блок зловить DivideByZeroException з останнього тесту
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"\nЗЛОВЛЕНО КРИТИЧНУ ПОМИЛКУ: {ex.Message}");
+                Console.ResetColor();
+            }
+
+            Console.WriteLine("\nРоботу завершено. Натиснiть Enter...");
+            Console.ReadLine();
         }
     }
 }
